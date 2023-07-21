@@ -1,0 +1,620 @@
+---
+title: "Project 3"
+author: "Lorraine Schemenauer"
+date: "03/16/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Panel Data Models
+## Assessing the Data
+Net exports are an important variable when calculating GDP. By observing panel data for net exports, we can determine which component places a heavier emphasis on GDP. In theory, we should expect that higher exports means higher GDP since countries like the United States are able to gather revenue for their economies. Meanwhile, it is hard to calculate imports since consumption is also a part the GDP, yet it still has an influence on the GDP. If we run this data through the 3 models, we will be able to assess how imports and exports affect GDP. 
+
+```{r}
+data1 <- read.csv("~/Downloads/top_six_economies.csv", header=FALSE, skip=1)
+View(data1)
+#Problem 1
+#Convert to Panel Data
+library(plm)
+library(AER)
+colnames(data1)<-c("ID", "Country", "Year", "GDP", "GDP.PPP", "GDP.Per.capita", "GDP.growth", "Imports", "Exports") 
+#get specific data
+data1<-data.frame(data1$Year, data1$Country, data1$ID, data1$GDP, data1$Imports, data1$Exports)
+View(data1)
+head(data1)
+#change to panel data
+paneldata<-pdata.frame(data1, index=c("data1.Country", "data1.Year"))
+View(paneldata)
+#convert imports/exports to gdp calc
+paneldata$data1.Imports<-paneldata$data1.Imports*paneldata$data1.GDP/100
+paneldata$data1.Exports<-paneldata$data1.Exports*paneldata$data1.GDP/100
+View(paneldata)
+
+#preparing panel data frame
+for (i in 1: nrow(paneldata))
+{
+  if(paneldata$data1.Country [i] == "United States")
+  {
+    paneldata$data1.ID[i] = 1
+  }
+  if(paneldata$data1.Country [i] == "China")
+ {
+      paneldata$data1.ID[i] = 2
+  }
+    if(paneldata$data1.Country [i] == "Japan")
+    {
+      paneldata$data1.ID[i] = 3
+    }
+    if(paneldata$data1.Country [i] == "Germany")
+    {
+paneldata$data1.ID[i] = 4
+}
+ if(paneldata$data1.Country [i] == "United Kingdom")
+{
+paneldata$data1.ID[i] = 5
+}
+if(paneldata$data1.Country [i] == "India")
+{
+paneldata$data1.ID[i] = 6
+}
+}
+
+View(paneldata)
+```
+
+# Problem 2
+## Histograms 
+For our histograms, we had to apply a transfromation of 10^12 to each variable to create an appropriate scale. Our results showed us that each histogram is skewed right. For the histogram of GDP, all countries are distributed around the GDP mean of 10^12. Based on this histogram, we can conclude that countries that are rich grow at a slower rate. For the histogram of imports, the countries are distributed around the GDP mean of about 10^13. This makes sense because countries trade to maximize GDP. Lastly, in the histogram for exports, we can see that the countries are distributed around the GDP mean of 10^12. This means that countries export to generate high revenue contributing to their GDP.
+
+``` {r}
+library(MASS)
+hist(paneldata$data1.GDP/10^13, prob = TRUE, xlab = "GDP in 10^13 scale", ylab = "Frequency", main = "Histogram of GDP")
+fit1<-fitdistr(paneldata$data1.GDP/10^13, densfun="logistic")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(paneldata$data1.Exports/10^12, prob = TRUE, xlab = "Exports in 10^12 scale", ylab = "Frequency", main = "Histogram of Exports")
+fit1<-fitdistr(paneldata$data1.Exports/10^12, densfun="logistic")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(paneldata$data1.Imports/10^12, prob = TRUE, xlab = "Exports in 10^12 scale", ylab = "Frequency", main = "Histogram of Imports")
+fit1<-fitdistr(paneldata$data1.Imports/10^12, densfun="logistic")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+```
+
+## Correlation Plots 
+From the correlation plot, we can conclude that there is strong positive correlation given that our coefficient values are close to one. In this data, it shows that imports are more strongly correlated to GDP than exports because an economy wants to minimize the cost in trading. It also shows that with an increase in imports, there will be a increase in GDP. However, based on the actual formula for GDP, net exports is exports minus imports. There should be a negative correlation between imports and GDP. 
+
+```{r}
+library(corrplot)
+M1 = cor(paneldata[,4:6])
+corrplot(M1, method = 'shade', main = "Correlation Plot")
+
+```
+
+## Box Plots
+For the boxplot of GDP, the median is around 10^12. As well, over time there are more outliers because countries develop at different rates. This creates a gap between the most and least developed out of the top 6 countries. For the boxplot of exports, the median is around 10^11 GDP which shows that the top 6 countries can get most of its GDP mostly from exports. It also shows that over time, these countries become more reliant 
+on exports for their GDP. For the boxplot of imports, the median is lower than exports at about 10^10 GDP. Given our dataset is the top 6 countries, it makes sense that the median for exports is higher than imports. Again, higher exports means higher GDP.
+
+```{r}
+boxplot(paneldata$data1.GDP/10^13, main = "GDP")
+boxplot(paneldata$data1.Imports/10^12, main = "Imports")
+boxplot(paneldata$data1.Exports/10^12, main = "Exports")
+```
+
+## Scatter Plots
+The scatter plots show the relationship between our variables imports and exports against GDP. This comparison aligns with our overall question of what the magnitude imports and exports have on GDP. Imports tend to be around between 25-30 while exports tend to be around 20-30. 
+
+```{r}
+plot(data1$data1.Imports, data1$data1.GDP/10^13, xlab="Imports", ylab="GDP", main="Scatterplot of Imports vs. GDP with Scale of 10^13")
+plot(data1$data1.Exports, data1$data1.GDP/10^13, xlab="Exports", ylab="GDP", main="Scatterplot of Exports vs. GDP with Scale of 10^13")
+```
+
+## Statistical Summary
+The statistical summary gives us statistics of our data that can better help us understand our panel data.  For GDP, the minimum is 2.701x10^11, the maximum is 2.137x10^13, and the mean is 4.915x10^12. This makes sense given we are observing the top 6 countries. For imports, the minimum is 2.294x10^10, the maximum is 3.130x10^12 and the mean is 9.106x10^11. For the exports, the minimum is 2.294x10^10, the maximum is 2.723x10^12, and the mean is 6.725x10^11. Imports has a higher mean than exports which is shocking given we are taking the top 6 GDPs. 
+
+```{r}
+#statistical summary
+summary(paneldata)
+```
+
+# Problem 3
+## Pooled Model
+Pooled model is simply our OLS model.
+
+## Coef Test
+We performed the Cluster-Robust Standard errors to account for endogeneity of the time component. While the significance changed, we can note that the interpretation for the betas remains the same. 
+
+```{r}
+library(plm)
+library(AER)
+library(car)
+library(gplots)
+paneldata<-pdata.frame(data1, index=c("data1.Country", "data1.Year"))
+poolEffect<- plm(data1.GDP~data1.Exports+data1.Imports, model="pooling", data=paneldata)
+summary(poolEffect)
+coeftest(poolEffect, vcov=vcovHC(poolEffect, type="HC0", cluster="group"))
+```
+
+## Pooled Scatter Plot and Plot Means
+Overtime, as an economy grows larger, it also becomes harder for it to track down each component in GDP. In the scatterplot, it represents this because the confidence interval get larger and larger overtime. From 1991 to early 2000s, there is not much overlap, meaning there is no significant difference. If it had not been for the financial crisis, the data would have followed the same pattern. By 2015, the median returns. The medians is increasing with time. Yet, due to the confidence interval increasing with time, the prediction of the median is less accurate. 
+
+Because we do not have a lot of outliers in the scatterplot, we are able to use the plot means to better visualize if there is a significant difference across GDPs. First, plotting GDP versus the individual, we can conclude there is a large gap between China compared to the other countries. This is a significiant difference. Next, plotting GDP versus the year, there is also a significant difference. As stated above, the error bands grow as GDP grows overtime. 
+
+
+```{r}
+scatterplot(data1.GDP/10^13~data1.Year|data1.ID, data=paneldata, xlab="Year", ylab="GDP")
+plotmeans(paneldata$data1.GDP/10^13~paneldata$data1.Year, data=paneldata, xlab="Year", ylab="GDP")
+plotmeans(paneldata$data1.GDP/10^13~paneldata$data1.ID, data=paneldata, xlab="ID", ylab="GDP")
+
+```
+
+## Comparing Fixed Effects, Pool Effects, and Random Effects
+We run the fixed effects model and compare it to the pooled model. 
+To identify the preferred model we ran the pooled model, the fixed effects model, and the random effect model. To compare the pool effects to the fixed effects model, we used the Pftest function. Testing both firm and time effects versus the pooled model, we obtained a low p value meaning that both firm and time effects were better than the pool model. Testing only the time effects against the pooled model, we obtained a p value equal to one. This meant that the time effect was not significantly different. Lastly, testing the firm effects only against the pooled model resulted in a low p value, so the firm fixed effects is the preferred model. 
+
+From these three tests, we can conclude that the fixed effects model including the firm is preferred over the pooled model. To verify these findings, we plotted all of these effects onto a coefficient plot. This plot showed us that none of our betas crossed zero. Next, we compared this to the random effects model. This resulted in a large p-value, so we failed to reject the null hypothesis and concluded that the random effects model was preferred. Given the random effects model using GLS, this is the best model to use out of the three. Plotting the coefficients of the random effects model, the beta values did not cross the insignificance line validating that it is the best model.
+
+```{r}
+#fixed effects
+fixedEffect.full<- plm(data1.GDP~data1.Exports+data1.Imports, model="within", data=paneldata, effect="twoways")
+fixedEffect.time<- plm(data1.GDP~data1.Exports+data1.Imports, model="within", data=paneldata, effect="time")
+fixedEffect.firm<- plm(data1.GDP~data1.Exports+data1.Imports, model="within", data=paneldata, effect="individual")
+pFtest(fixedEffect.full, poolEffect)
+#fixed effect full preferred
+
+pFtest(fixedEffect.time, poolEffect)
+#Including time effect does not help
+
+pFtest(fixedEffect.firm, poolEffect)
+#Firm affects the significance, we want to include firm effects
+```
+
+## Coefficient Plot for Fixed Effects firm model
+
+```{r}
+library(coefplot)
+library(ggplot2)
+coefplot(fixedEffect.firm)
+```
+
+## Random Effects Model
+
+```{r}
+#random effect model
+randomeffect<-plm(data1.GDP~data1.Exports+data1.Imports, data=paneldata, model="random")
+
+#random effect compared to fixed effect firm
+phtest(fixedEffect.firm, randomeffect)
+#Fail to reject, Use Random effects
+
+
+
+```
+
+## Random Effects Plot
+
+```{r}
+#random effects plot
+ce <- function(model.obj) {
+  summ.model <- summary(get(model.obj))$coefficients
+  extract <- summ.model[2:nrow(summ.model),drop=FALSE, 1:2]
+  return(data.frame(extract, vars = row.names(extract), model = model.obj))
+}
+coefs <- do.call(rbind, sapply(paste0(list(
+  "fixedEffect.firm", "randomeffect"
+)), ce, simplify= FALSE))
+names(coefs)[2] <- "se"
+gg_coef <- ggplot(coefs, aes(vars, Estimate)) +
+  geom_hline(yintercept = 0, lty = 1, lwd = 0.5, colour = "red") +
+  geom_errorbar(aes(ymin = Estimate - se, ymax = Estimate + se, colour = vars),
+                lwd = 1, width = 0
+  )+
+  geom_point(size = 3, aes(colour = vars)) + facet_grid(model ~ ., scales="free") + coord_flip() +
+  guides(colour = FALSE) +
+  labs(x = "Coefficient", y = "Value") + ggtitle("Model Coefficients")
+gg_coef
+#This verifies that the random effects is the best model because each beta value does not cross the insignificance. 
+```
+
+# Part Two: Qualitative Dependent Variable Models
+# Problem 1
+Our objective is to determine whether or not a customer will get churned.  By looking at the predictors: months on book, credit limit, customer age, dependent count, and average 
+open to buy, we can find the probability that an existing customer will get churned or not.
+
+We can predict that customers that are older are going to have more experience and make better financial decisions compared to younger customers. A higher credit limit means that banks trust the customer and they are less likely to be churned. We can expect that people with less dependents are more likely to not be churned since they have less expenses. The higher the average open to buy, which is the difference between the credit limit and the present balance a person has on their account, the less likely a customer will be churned. 
+ 
+# Problem 2
+When preparing our data, we changed Attrition flag to a binary
+variable where 1 represents Existing Customer and 0 for the Attrited Customer. The binary data allows us to obtain the probability of a customer staying with the bank.
+
+```{r}
+Bank <- read.csv("~/Downloads/Bank.csv", header=FALSE, skip=1)
+View(Bank)
+colnames(Bank)
+
+data6<-data.frame(Bank$V2, Bank$V10, Bank$V14, Bank$V3, Bank$V5, Bank$V16)
+colnames(data6)<-c("Attrition Flag", "Months on the Book", "Credit Limit", "Customer Age", "Dependent Count", "Average Open to Buy")
+
+for(i in 1:nrow(data6))
+  {
+    if(data6$`Attrition Flag` [i] == "Existing Customer")
+    {
+      data6$`Attrition Flag` [i]=1
+    }
+    else
+    {
+      data6$`Attrition Flag` [i]=0
+    }
+  }
+View(data6)
+```
+
+## Histograms
+Months of the book is normally distributed with a mean around 35. This means people are with the bank for around 35 months, around 3 years. Credit limit is skewed right with a mean around 6000. This means that $6000 is a frequent credit limit for customers. Customer age is normally distributed with a mean at about 45 years old. This could mean that less people will be churned as they are higher in age with more experience. The dependent count is normally distributed with about 2 or 3 dependents. This could be a sign that having children means people are more responsible and reliable so it is possible less people in this bank will be churned. Average open to buy is skewed right with a mean of 5000. This means people are not reaching their credit limit so less people will be churned. The attrition flag is skewed left with the mean at 1. This means people are less likely to be churned at this bank based on what we have already described from the predictors.  
+
+```{r}
+library(MASS)
+hist(data6$`Months on the Book`, prob = TRUE)
+fit1<-fitdistr(data6$`Months on the Book`, densfun="normal")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(data6$`Credit Limit`, prob = TRUE)
+fit1<-fitdistr(data6$`Credit Limit`, densfun="normal")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(data6$`Customer Age`, prob = TRUE)
+fit1<-fitdistr(data6$`Customer Age`, densfun="normal")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(data6$`Dependent Count`, prob = TRUE)
+fit1<-fitdistr(data6$`Dependent Count`, densfun="normal")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(data6$`Average Open to Buy`, prob = TRUE)
+fit1<-fitdistr(data6$`Average Open to Buy`, densfun="normal")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+
+hist(as.numeric(data6$`Attrition Flag`), prob = TRUE)
+fit1<-fitdistr(as.numeric(data6$`Attrition Flag`), densfun="normal")
+curve(dnorm(x,fit1$estimate[1], fit1$estimate[2]), col="red", add=T)
+```
+
+## Box Plots
+Credit limit has a median around 5000 but a lot of outliers up to 35000. This makes sense since the average customer is around 45 years old, so they are able to obtain a higher credit limit. Months on the book has a median of 35 months with 25% lower quartile being around 20 months and the upper quartile at around 55 months. The attrition flag again shows that majority customers will not be churned. The customer age has a median at 45 years old. The dependent count has a median at 2. The average open to buy has a lot of outliers which is a good sign that less people will be churned.
+
+```{r}
+boxplot(data6$`Credit Limit`, main = "Credit Limit")
+
+boxplot(data6$`Months on the Book`, main = "Months on the Book")
+
+boxplot(as.numeric(data6$`Attrition Flag`), main = "Attrition Flag")
+
+boxplot(data6$`Customer Age`, main = "Customer Age")
+
+boxplot(data6$`Dependent Count`, main = "Dependent Count")
+
+boxplot(data6$`Average Open to Buy`, main = "Average Open to Buy")
+
+```
+
+## Scatterplots
+For months on the book versus attrition flag, there the scatter plot does not show a difference between someone who is churned versus someone who is depending on the months of the bank. For credit limit versus attrition flag, someone who is going to be churned has a lower credit limit while someone who is not going to be churned has a higher credit limit. For age versus attrition flag, those who are not going to be churned have more outliers, meaning that older people are less likely to be churned. For dependent count versus attrition flag, the scatter plot does not show a difference between someone being churned and someone not being churned. This could mean that the dependent count could not have as much of an influence. For average open to buy versus attrition flag, the scatter plot has a higher concentration of average open to buy people for people who are not going to be churned. 
+
+```{r}
+library(car)
+library(gplots)
+plot(data6$`Months on the Book`, data6$`Attrition Flag`, xlab="Months on the Book", ylab="Attrition flag", main="Scatterplot of Attrition Flag vs Months on the Book")
+plot(data6$`Credit Limit`, data6$`Attrition Flag`, xlab="Credit Limit", ylab="Attrition Flag", main="Scatterplot of Credit Limit vs Attrition Flag")
+plot(data6$`Customer Age`, data6$`Attrition Flag`, xlab="Customer Age", ylab="Attrition Flag", main="Scatterplot of Customer Age vs Attrition Flag")
+plot(data6$`Dependent Count`, data6$`Attrition Flag`, xlab="Dependent Count", ylab="Attrition Flag", main="Scatterplot of Dependent Count vs Attrition Flag")
+plot(data6$`Average Open to Buy`, data6$`Attrition Flag`, xlab="Average Open to Buy", ylab="Attrition Flag", main="Scatterplot of Attrition Flag vs Average Open to Buy")
+```
+
+## Correlation Plots
+Attrition flag has only a weakly positive correlation with credit limit. The month on the book has a positive correlation with customer age and negative correlation with dependent count. The credit limit has a strong positive correlation with average open to buy and a slight positive correlation with dependent count. The customer age has a strong postitive correlation with months on the book and a slight negative correlation with dependent count. Dependent count has low negative correlation with months on the book and customer age while it also has a slight positve correlation with credit limit and average open to buy. The average open to buy has a strong positive correlation with credit limit and a slight positive correlation with dependent count.
+
+```{r}
+library(corrplot)
+corrborr<-data.frame(as.numeric(data6$`Attrition Flag`), data6$`Months on the Book`, data6$`Credit Limit`, data6$`Customer Age`, data6$`Dependent Count`, data6$`Average Open to Buy`)
+M1 = cor(corrborr)
+corrplot(M1, method = 'shade', main = "Credit Card")
+```
+
+## Statistical Summary
+The statistical summary confirms what we visually saw in the box plot, scatter plot, and histograms. The means of this output leads us to suspect that people are less likely to be churned at this bank. The following models will help us confirm our hypothesis. 
+
+```{r}
+summary(data6)
+```
+
+# Problem 3
+## Linear Probability Model
+The linear probability model is our typical OLS. The variables credit limit, dependent count, average open to buy, and customer age (with .1 significance level) are statistically significant, given the low p value. With the linear probability model, we can interpret the betas directly. For example, a unit change in credit limit means a 1.190e-04 percent increase in attrition flag. 
+
+```{r}
+linearProb <- lm(`Attrition Flag`~ `Months on the Book`+`Credit Limit`+ `Customer Age`+ `Dependent Count`+ `Average Open to Buy`, data=data6)
+summary(linearProb)
+```
+
+### LPM Plots
+When we plot our LPM for months on the book, customer age, and dependent count, our fitted value line has a very small slope with a large intercept. Comparing our points to this line gives us an idea of how well we classified 0 and 1. The y hat values are closer to what we classified as 1 while further away from what we classified as 0. This matches what we assigned as 0 is more likely to be misclassified. This conclusion also matches our results from our confusion matrix. For the credit limit and average open to buy, the y hats pass the 0 and 1 bounds, given it is a LPM. This can be fixed later with the probit/logit model. 
+
+```{r}
+plot(data6$`Months on the Book`, data6$`Attrition Flag`, pch=20)
+abline(linearProb, col="red", lwd=2)
+
+plot(data6$`Credit Limit`, data6$`Attrition Flag`, pch=20)
+abline(linearProb, col="red", lwd=2)
+
+plot(data6$`Average Open to Buy`, data6$`Attrition Flag`, pch=20)
+abline(linearProb, col="red", lwd=2)
+
+plot(data6$`Dependent Count`, data6$`Attrition Flag`, pch=20)
+abline(linearProb, col="red", lwd=2)
+
+plot(as.numeric(data6$`Customer Age`), data6$`Attrition Flag`, pch=20)
+abline(linearProb, col="red", lwd=2)
+
+```
+
+### Confusion Matrix for LPM
+When conducting the confusion matrix with a threshold of 0.5, the row for 0 did not show so we increased our threshold to .7 to get a full matrix. With the 0.7 threshold, we obtain an accuracy of 80%. We got this by adding what was classified correclty divided by the total. 
+
+```{r}
+#confusion matrix
+confint(linearProb)
+ols.pred.classes <- ifelse(fitted(linearProb) > .7, 1, 0)
+table(ols.pred.classes, data6$`Attrition Flag`)
+```
+
+## Probit Model
+The probit model is better than the LPM given that it bounds the intervals between 0 and 1 and it is able to capture nonlinear values of x. From our statistical summary, we can only comment on the direction of the betas for interpretation. Thus, customer age, dependent count, and average to buy has a negative effect while months on the book and credit limit have a positive effect To further interpret our betas, we can find the average marginal effects. This gives the direct estimates of our variables. For example, a unit increase in credit limit will have a 1.067924e-04 percentage increase on the probability that a customer will not be churned.
+
+```{r}
+probit.mod = glm(as.numeric(`Attrition Flag`)~ `Months on the Book`+`Credit Limit`+ `Customer Age`+ `Dependent Count`+ `Average Open to Buy`, data=data6, family = binomial(link = "probit"))
+summary(probit.mod)
+confint(probit.mod)
+sum_phi <- mean(dnorm(predict(probit.mod,, type = "link")))
+ame = sum_phi*coef(probit.mod)
+ame
+```
+
+### Confusion Matrix
+The confusion matrix gives us an accuracy level of 80%. This is the same accuracy as our linear probability model. Therefore, we can conclude that the probit model will be preferred compared to the linear probability model.
+
+```{r}
+#confusion matrix
+probit.mod.classes <- ifelse(fitted(probit.mod ) > 0.7, 1, 0)
+table(probit.mod.classes, data6$`Attrition Flag`)
+```
+
+### Probit model plots
+The plot shows that the probit model is able to fit a nonlinear function which now can capture more of the missclassifications that we had seen with just the linear probability model. With the LPM, the fitted values were only a horizontal line which made it difficult to account for the 0's and 1's classification. Here, we can see that most of the points are closer to the fitted values. For months on the book, the fitted value is closer to the 1 classification, meaning that the customer is not likely to be churned.
+For the credit limit, all of the points for 0, the customers who will be churned, are misclassified because the fitted value do not hover around 0. 
+The customer who will not be churned has a credit limit up to 10,000 is classified because that it where the fitted values lie. For the customer age, the customer who will not be churned (1), are close to the fitted values so they are classified correctly. In contrast, the customer who will be churned does not have any points that are close to the fitted value. 
+For the dependent count, having 0 children is misclassified for both a customer being churned and not churned. Having 4 children is the most classified point for a customer who will not be churned. Lastly, the average open to buy plot shows us that all of the points for 0, the customers who will be churned, are misclassified because the fitted value do not hover around 0. The customer who will not be churned has a average open to buy of up to 10,000 is classified because that it where the fitted values lie. 
+
+
+```{r}
+#plot months on the book
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(probit.mod, type = "response", se.fit = TRUE, list(x=data6$`Months on the Book`))
+plot(data6$`Months on the Book`, data6$`Attrition Flag`,pch=20, main="Months on the Book vs Attrition Flag")
+lines(x, yhat$fit, col="red")
+```
+
+```{r}
+#plot credit limit
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(probit.mod, type = "response", se.fit = TRUE, list(x=data6$`Credit Limit`))
+plot(data6$`Credit Limit`, data6$`Attrition Flag`,pch=20, main="Credit Limit vs Attrition Flag")
+lines(x, yhat$fit, col="red")
+
+length(yhat$fit)
+
+
+```
+
+```{r}
+#plot customer age
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(probit.mod, type = "response", se.fit = TRUE, list(x=data6$`Customer Age`))
+plot(data6$`Customer Age`, data6$`Attrition Flag`,pch=20, main="Customer Age vs Attrition Flag")
+lines(x, yhat$fit, col="red")
+
+length(yhat$fit)
+
+```
+
+```{r}
+#plot dependent
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(probit.mod, type = "response", se.fit = TRUE,list(x=data6$`Dependent Count`))
+plot(data6$`Dependent Count`, data6$`Attrition Flag`,pch=20, main="Dependent Count vs Attrition Flag")
+lines(x, yhat$fit, col="red")
+length(yhat$fit)
+
+```
+
+```{r}
+#plot average open to buy
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(probit.mod, type = "response", se.fit = TRUE, list(x=data6$`Average Open to Buy`))
+plot(data6$`Average Open to Buy`, data6$`Attrition Flag`,pch=20, main="Average Open to Buy vs Attrition Flag")
+lines(x, yhat$fit, col="red")
+```
+
+## Logit Model
+The logit model is like the probit model in the fact that we can not interpret the betas directly. We can only look at the direction. Customer age, dependent count, and average open to buy have a negative effect while months on the book, credit limit have a positive effect. To further interpret the betas, we look at the average marginal effects. This delivers the direct effect. For example, a unit increase in credit limit leads to  0.0001051903 percent increase in the probability that the customer will not be churned. 
+
+```{r}
+#logit mod
+logit.mod = glm(as.numeric(`Attrition Flag`)~ `Months on the Book`+`Credit Limit`+ `Customer Age`+ `Dependent Count`+ `Average Open to Buy`, family = binomial(link = "logit"), data=data6)
+summary(logit.mod)
+
+#Marginal effect
+confint(logit.mod)
+sum_phi <- mean(dnorm(predict(logit.mod,, type = "link")))
+ame = sum_phi*coef(logit.mod)
+ame
+```
+
+### Confusion Matrix
+The confusion matrix gives us an accuracy level of 79%
+
+```{r}
+
+#Confusion matrix
+ols.pred.classes <- ifelse(fitted(logit.mod) > .7, 1, 0)
+table(ols.pred.classes, data6$`Attrition Flag`)
+```
+
+### Logit Plots
+For the months on the books, the fitted values leans towards the 1 classification that customers are less likely to be churned. For the credit limit, all of the points for 0, the customers who will be churned, are misclassified because the fitted value do not hover around 0. 
+The customer who will not be churned has a credit limit up to 10,000 is classified because that it where the fitted values lie. For dependent count, it is also leaning towards the classification of 1. Specifically, 4 children is best classified. For customer age, the fitted values continue to lean towards 1. It is a good fit overall. Lastly, the average open to buy plot shows us that all of the points for 0, the customers who will be churned, are misclassified because the fitted value do not hover around 0. The customer who will not be churned has a average open to buy of up to 10,000 is classified because that it where the fitted values lie. 
+
+```{r}
+#Logit plot
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(logit.mod, type = "response", se.fit = TRUE, list(x=data6$`Months on the Book`))
+plot(data6$`Months on the Book`, data6$`Attrition Flag`,pch=20)
+lines(x, yhat$fit,lwd=6, col ="red")
+
+length(yhat$fit)
+```
+```{r}
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(logit.mod, type = "response", se.fit = TRUE, list(x=data6$`Credit Limit`))
+plot(data6$`Credit Limit`, data6$`Attrition Flag`,pch=20)
+lines(x, yhat$fit,lwd=6, col ="red")
+
+length(yhat$fit)
+```
+```{r}
+attach(data6)
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(logit.mod, type = "response", se.fit = TRUE, list(x=data6$`Dependent Count`))
+plot(data6$`Dependent Count`, data6$`Attrition Flag`,pch=20)
+lines(x, yhat$fit,lwd=6, col ="red")
+
+length(yhat$fit)
+```
+
+```{r}
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(logit.mod, type = "response", se.fit = TRUE, list(x=data6$`Customer Age`))
+plot(data6$`Customer Age`, data6$`Attrition Flag`,pch=20)
+lines(x, yhat$fit,lwd=6, col ="red")
+
+length(yhat$fit)
+```
+
+```{r}
+library(ggplot2)
+library(survMisc)
+x = seq(length.out=10127) 
+yhat = predict(logit.mod, type = "response", se.fit = TRUE, list(x=data6$`Average Open to Buy`))
+plot(data6$`Average Open to Buy`, data6$`Attrition Flag`,pch=20)
+lines(x, yhat$fit,lwd=6, col ="red")
+
+length(yhat$fit)
+```
+
+### Logit Cross Validation
+We use the .66 training/testing and the cross validation to assess how well the logit model works. We can use our balanced accuracy of .5 as a reference point to determine the performance of the model. The accuracy measures at .8394 which is a good measurement given it beats the threshold of .5. Also, the specificity measures at 1 which is greater than .5 too. However, the sensitivity is measured at 0  is not good. This means that assigning 1 is a good classifier while assigning 0 was not. We can conclude that based on the predictors we have used, they mostly influence the classifier of 1. We had noticed that this could happen from the beginning just by analyzing our variables. For example, when most of our the data showed that the customer age average was around 45, we made a hypothesis that they would be more financially experienced and so it would be less likely that a customer would be churned, making sense why the best classifier is 1. To conclude, we will choose the logit model because our accuracies between the models are very similar. The plots from our probit and logit model also were the same, so we are safe to choose the better model of logit. Logit is better to analyze analytically. 
+
+```{r}
+#Cross Validation
+library(caret)
+dataFORYOU<-data.frame(data6$`Attrition Flag`, data6$`Months on the Book`, data6$`Credit Limit`, data6$`Customer Age`, data6$`Dependent Count`, data6$`Average Open to Buy`)
+View(dataFORYOU)
+colnames(dataFORYOU)<-c("Attrition Flag", "Months on the Book", "Credit Limit", "Customer Age", "Dependent Count", "Average Open to Buy")
+
+inTraining <- createDataPartition(dataFORYOU$`Attrition Flag`, p = .66, list = FALSE)
+training <- dataFORYOU[ inTraining,]
+testing  <- dataFORYOU[-inTraining,]
+train_control <- trainControl(method = "cv",
+                              number = 5)
+
+
+logit_model <- train(as.factor(`Attrition Flag`)~., data = training,
+                           method = "glm",
+                           family = "binomial",
+                           trControl = train_control)
+
+
+# Predict (probabilities) using the testing data
+pred_att = predict(logit_model, newdata = testing)
+
+# Evaluate performance
+confusionMatrix(data=pred_att, reference=as.factor(testing$`Attrition Flag`))
+
+```
+
+# Problem 4
+## Logit Predictions 
+Our preferred model is logit. When deciding what values to use to predict, for the first prediction, we chose the average for each variable. We included all predictors when conducting a prediction. For the first four periods, our predicted probabilities that a customer will not be churned are 0.8162438, 0.8047168, 0.6596746, and 0.9550266. The standard errors for these four periods are also 0.006225332, 0.011695526, 0.011827132, 0.003653452. Given these standard errors are small, we can determine that these predictions are reliable. 
+
+For our second prediction we used the median values from the statistical summary, and obtained the predictions of 0.8162438, 0.8047168, 0.6596746, and 0.9550266 for the first four periods. The standard errors are 0.006225332, 0.011695526, 0.011827132, and 0.003653452.
+
+For our third prediction, we used the minimum values from the statistical summary and obtained the predictions of 0.8162438, 0.8047168, 0.6596746, and 0.9550266 for the first four periods. The standard errors are 0.006225332, 0.011695526, 0.011827132, and 0.003653452. 
+
+For our fourth prediction, we used the maximum values from the statistical summary and obtained the predictions of 0.8162438, 0.8047168, 0.6596746, and 0.9550266 for the first four periods. The standard errors are 0.006225332, 0.011695526, 0.011827132, and 0.003653452. 
+
+```{r}
+attach(data6)
+x.mean<-data.frame(`Credit Limit`= 8632)+ data.frame(`Average Open to Buy`= 7469)+ data.frame(`Dependent Count`= 2.346)+ data.frame(`Customer Age`= 46.33) + data.frame(`Months on the Book`= 35.93)
+predictdata1<-predict(logit.mod, x.mean, type="response", se.fit=TRUE)
+head(predictdata1$fit, n=4)
+head(predictdata1$se, n=4)
+
+x.median<-data.frame(`Credit Limit`= 4549)+ data.frame(`Average Open to Buy`= 474)+ data.frame(`Dependent Count`= 2)+ data.frame(`Customer Age`= 46) + data.frame(`Months on the Book`= 36)
+predictdata2<-predict(logit.mod, x.median, type="response", se.fit=TRUE)
+head(predictdata2$fit, n=4)
+head(predictdata2$se, n=4)
+
+x.min<-data.frame(`Credit Limit`= 1438)+ data.frame(`Average Open to Buy`= 3)+ data.frame(`Dependent Count`= 0)+ data.frame(`Customer Age`= 26) + data.frame(`Months on the Book`= 13)
+predictdata3<-predict(logit.mod, x.min, type="response", se.fit=TRUE)
+head(predictdata3$fit, n=4)
+head(predictdata3$se, n=4)
+
+x.max<-data.frame(`Credit Limit`= 34516)+ data.frame(`Average Open to Buy`= 34516)+ data.frame(`Dependent Count`= 5)+ data.frame(`Customer Age`= 73) + data.frame(`Months on the Book`= 56)
+predictdata4<-predict(logit.mod, x.max, type="response", se.fit=TRUE)
+head(predictdata4$fit, n=4)
+head(predictdata4$se, n=4)
+
+```
+
+
+
+
+
+
