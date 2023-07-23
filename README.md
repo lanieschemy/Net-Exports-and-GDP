@@ -1,5 +1,5 @@
 ## Effects on Imports and Exports on GDP
-
+Applied a panel data model to understand the effects of imports and exports on GDP across time and different countries
 ## How It's Made
 * Data
   - https://www.kaggle.com/datasets/yasserh/wine-quality-dataset
