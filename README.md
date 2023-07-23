@@ -24,7 +24,8 @@
   - Random Effects
 * Finding the Best Model
   - Plot Means
-  - pfTest
+  - pFtest
+  - pHtest
 ## Summary
 
 
