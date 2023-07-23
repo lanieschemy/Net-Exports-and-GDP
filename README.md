@@ -23,7 +23,7 @@
   - Fixed Effects
   - Random Effects
 * Finding the Best Model
-  - Cluster Robust Standard Errors
+  - Cluster-Robust Standard Errors
   - Plot Means
   - pFtest
   - pHtest
