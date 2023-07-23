@@ -25,7 +25,7 @@
 * Finding the Best Model
   - Cluster-Robust Standard Errors
   - Plot Means
-  - Coefficient Plot
+  - Coefficient Plots
   - pFtest
   - pHtest
 ## Summary
