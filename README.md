@@ -18,11 +18,13 @@
   - Histograms
   - Scatterplots
   - Correlation plots
-  - Plot Means
 * Panel Data Models
   - Pooled Model
   - Fixed Effects
   - Random Effects
+* Finding the Best Model
+  - Plot Means
+  - pfTest
 ## Summary
 
 
