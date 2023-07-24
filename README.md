@@ -28,4 +28,4 @@ Applied a panel data model to better understand the effects of imports and expor
   - pFtest
   - pHtest
 ## Lesson Learned
-Comparing the results given from the pooled model and the random effects model(found as the best model), shows how skewed results could be when not using the correct model. 
+The analysis from the pooled model versus the random effects model(found as the best model), are contradacting. This is why doing the work to find the best model is so significant to having accurate results.
